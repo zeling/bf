@@ -12,7 +12,8 @@ void interp() {
     &&jnz,
     &&jz,
     &&put,
-    &&get
+    &&get,
+    &&clr
   };
 
   for(;;) {
@@ -20,16 +21,16 @@ void interp() {
   }
 
 dec:
-  (*sp)--;
+  (*sp) -= *pc++;
   goto *lut[*pc++];
 inc:
-  (*sp)++;
+  (*sp) += *pc++;
   goto *lut[*pc++];
 shl:
-  sp--;
+  sp -= *pc++;
   goto *lut[*pc++];
 shr:
-  sp++;
+  sp += *pc++;
   goto *lut[*pc++];
 jnz:
   if (*sp) pc += (signed) (*pc);
@@ -44,5 +45,8 @@ put:
   goto *lut[*pc++];
 get:
   *sp = getchar();
+  goto *lut[*pc++];
+clr:
+  *sp = 0;
   goto *lut[*pc++];
 }

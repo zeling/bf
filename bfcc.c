@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 enum bfinst {
   I_DEC = 0,
@@ -9,7 +10,8 @@ enum bfinst {
   I_JNZ,
   I_JZ,
   I_PUT,
-  I_GET
+  I_GET,
+  I_CLR
 };
 
 typedef struct stack {
@@ -21,11 +23,12 @@ typedef struct stack {
 stack_t stack_new() {
 #define DEFAULT_SIZE 64
   long *data = malloc(sizeof(long) * DEFAULT_SIZE);
-  return {
-    .cap = DEFAULT_SIZE;
-    .top = 0;
-    .data = data;
-  }
+  stack_t ret = {
+    .cap = DEFAULT_SIZE,
+    .top = 0,
+    .data = data
+  };
+  return ret;
 }
 
 void push(stack_t stack, long pos) {
@@ -45,6 +48,19 @@ long pop(stack_t stack) {
   return ret;
 }
 
+uint8_t eat(FILE *in, char target) {
+  /* eat up to 255 characters to return the count */
+  int c;
+  uint8_t ret = 1; /* don't forget the byte initiated the process */
+  while ((c = fgetc(in)) == target && ret <= 255) {
+    ++ret;
+  }
+  if (c != EOF) {
+    ungetc(c, in);
+  }
+  return ret;
+}
+
 void transform(FILE *in, FILE *out) {
   int c;
   stack_t st = stack_new();
@@ -52,29 +68,44 @@ void transform(FILE *in, FILE *out) {
     switch (c = fgetc(in)) {
       case '-': {
         fputc(I_DEC, out);
+        fputc(eat(in, '-'), out);
 	break;
       }
       case '+': {
         fputc(I_INC, out);
+        fputc(eat(in, '+'), out);
 	break;
       }
       case '<': {
         fputc(I_SHL, out);
+        fputc(eat(in, '<'), out);
 	break;
       }
       case '>': {
         fputc(I_SHR, out);
+        fputc(eat(in, '>'), out);
 	break;
       }
       case '[': {
         fputc(I_JZ, out);
 	long pos = ftell(out);
 	push(st, pos);
-	fputc(0, out); /* we wiil come back later */
+	fputc(0, out); /* we will come back later */
 	break;
       }
       case ']': {
         fputc(I_JNZ, out);
+        long here = ftell(out);
+        long there = pop(st);
+        long delta = here - there;
+        if (delta > 0xff) {
+          printf("you cannot jump away more than 255 bytes");
+          exit(1);
+        }
+        fseek(out, there, SEEK_SET);
+        fputc(delta, out);
+        fseek(out, here, SEEK_SET);
+        fputc((uint8_t) -delta, out);
 	break;
       }
       case '.': {
