@@ -10,4 +10,9 @@ bfcc.o: bfcc.c
 bfinst.o: bfinst.c
 	$(CC) -c bfinst.c $(CFLAGS)
 
+bfvm.o: bfvm.c
+	$(CC) -c bfvm.c $(CFLAGS)
+
+bfvm: bfvm.o bfinst.o
+	$(CC) -o bfvm bfvm.o bfinst.o
 
