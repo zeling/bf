@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 
 enum bfinst {
   I_DEC = 0,
@@ -31,19 +32,19 @@ stack_t stack_new() {
   return ret;
 }
 
-void push(stack_t stack, long pos) {
-  if (stack.top >= stack.cap) {
-    stack.cap *= 2;
-    stack.data = realloc(stack.data, stack.cap);
+void push(stack_t *stack, long pos) {
+  if (stack->top >= stack->cap) {
+    stack->cap *= 2;
+    stack->data = realloc(stack->data, stack->cap);
   } 
-  stack.data[stack.top++] = pos;
+  stack->data[stack->top++] = pos;
 }
 
-long pop(stack_t stack) {
-  int ret = stack.data[--stack.top];
-  if (stack.top <= stack.cap / 4) {
-    stack.cap /= 2;
-    stack.data = realloc(stack.data, stack.cap);
+long pop(stack_t *stack) {
+  int ret = stack->data[--stack->top];
+  if (stack->top <= stack->cap / 4) {
+    stack->cap /= 2;
+    stack->data = realloc(stack->data, stack->cap);
   }
   return ret;
 }
@@ -89,14 +90,14 @@ void transform(FILE *in, FILE *out) {
       case '[': {
         fputc(I_JZ, out);
 	long pos = ftell(out);
-	push(st, pos);
+	push(&st, pos);
 	fputc(0, out); /* we will come back later */
 	break;
       }
       case ']': {
         fputc(I_JNZ, out);
         long here = ftell(out);
-        long there = pop(st);
+        long there = pop(&st);
         long delta = here - there;
         if (delta > 0xff) {
           printf("you cannot jump away more than 255 bytes");
@@ -116,8 +117,43 @@ void transform(FILE *in, FILE *out) {
         fputc(I_GET, out);
 	break;
       }
+      default:
+        /* skip */
+        break;
     }
   } while (c != EOF);
 }
 
-
+int main(int argc, char **argv) {
+  if (argc < 2) {
+    printf("fbcc [-otarget] source\n");
+    exit(1);
+  }
+  char *tname = "a.bfc";
+  int ch;
+  while ((ch = getopt(argc, argv, "o::")) != -1) {
+    switch(ch) {
+      case 'o':
+        tname = optarg;
+        break;
+      default:
+        printf("fbcc [-otarget] source\n");
+        exit(1);
+    }
+  }
+    
+  FILE *source = fopen(argv[optind], "r");
+  if (!source) {
+    perror("fopen");
+    exit(1);
+  }
+  FILE *target = fopen(tname, "w+");
+  if (!target) {
+    perror("fopen");
+    exit(1);
+  }
+  transform(source, target);
+  fclose(source);
+  fclose(target);
+  return 0;
+}

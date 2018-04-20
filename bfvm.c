@@ -3,6 +3,10 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <stdint.h>
+
+extern uint8_t *pc;
+extern char *sp;
 
 int load_and_interp(const char *fname) {
   int fd = open(fname, O_RDONLY);
@@ -17,4 +21,8 @@ int load_and_interp(const char *fname) {
     perror("mmap");
     exit(1);
   }
+}
+
+int main(int argc, char *argv[]) {
+  return 0;
 }

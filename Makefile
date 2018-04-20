@@ -1,6 +1,8 @@
 CC=gcc
 CFLAGS = -O2
 
+all: bfcc bfvm
+
 bfcc: bfcc.o
 	$(CC) -o bfcc bfcc.o
 
