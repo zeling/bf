@@ -12,3 +12,6 @@ You can even try the generating mandelbrot sets, a good example is from [Eric Bo
 If you try mandelbrot-titantic.b, you should expect the beautiful fractal image ![image](img/bf-mandelbrot-titannic.png).
 At the moment, the interpreter is still slow, and I didn't find an existing interpreter that can actually run the mandelbrot program, so I can't do any comparison.
 I will regard mine as the baseline and try do some optimization in the future, maybe adding some JIT to gain speed up.
+
+Added a rpython translated rival in example2.py which is borrowed from a pypy-tutorial, with -O3 option it tooks ~32 seconds to generate a 128x48 graph while my naive
+token-threaded interpreter used ~22 seconds on my box. The result may be quite satisfactory.
