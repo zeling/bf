@@ -1,10 +1,22 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+
+#ifdef DEBUG
+#define LABEL(name) name: printf("sp: %p, pc: %p, char: %c, inst: %s\n", sp, pc, *sp, #name);
+#else
+#define LABEL(name) name:
+#endif
 
 uint8_t *pc;
 char *sp;
+uint8_t *dumb = 0;
+uint32_t offset = 0;
+uint8_t **place;
+int vardec = 0;
 
 void interp() {
+  int i;
   static void *lut[] = {
     &&dec,
     &&inc,
@@ -20,35 +32,54 @@ void interp() {
 
   goto *lut[*pc++];
 
-dec:
+LABEL(dec)
   (*sp) -= *pc++;
   goto *lut[*pc++];
-inc:
+LABEL(inc)
   (*sp) += *pc++;
   goto *lut[*pc++];
-shl:
-  sp -= *pc++;
+LABEL(shl)
+  offset = 0;
+  for (i = 0; i < 4; i++) {
+    offset <<= 8;
+    offset |= *pc++;
+  }
+  sp -= offset;
   goto *lut[*pc++];
-shr:
-  sp += *pc++;
+LABEL(shr)
+  offset = 0;
+  for (i = 0; i < 4; i++) {
+    offset <<= 8;
+    offset |= *pc++;
+  }
+  sp += offset;
   goto *lut[*pc++];
-jnz:
-  if (*sp) pc += (int8_t) (*pc);
-  ++pc;
+LABEL(jnz)
+  offset = 0;
+  for (i = 0; i < 4; i++) {
+    offset <<= 8;
+    offset |= *pc++;
+  }
+  if (*sp) pc += (int32_t) offset;
   goto *lut[*pc++];
-jz:
-  if (!*sp) pc += (int8_t) (*pc);
-  ++pc;
+LABEL(jz)
+  offset = 0;
+  for (i = 0; i < 4; i++) {
+    offset <<= 8;
+    offset |= *pc++;
+  }
+  if (!*sp) pc += (int32_t) offset;
   goto *lut[*pc++];
-put:
+LABEL(put)
   putchar(*sp);
   goto *lut[*pc++];
-get:
+LABEL(get)
   *sp = getchar();
   goto *lut[*pc++];
-clr:
+LABEL(clr)
   *sp = 0;
   goto *lut[*pc++];
-exit:
+LABEL(exit)
   exit(0);
+  
 }

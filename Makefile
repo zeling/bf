@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS = -O2 -g
+CFLAGS = -O2 -g $(U)
 
 all: bfcc bfvm
 
@@ -18,3 +18,5 @@ bfvm.o: bfvm.c
 bfvm: bfvm.o bfinst.o
 	$(CC) -o bfvm bfvm.o bfinst.o
 
+.phony clean:
+	rm *.o bfvm bfcc

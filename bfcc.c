@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <assert.h>
 
 enum bfinst {
   I_DEC = 0,
@@ -36,31 +37,38 @@ stack_t stack_new() {
 void push(stack_t *stack, long pos) {
   if (stack->top >= stack->cap) {
     stack->cap *= 2;
-    stack->data = realloc(stack->data, stack->cap);
+    stack->data = realloc(stack->data, stack->cap * sizeof(long));
   } 
   stack->data[stack->top++] = pos;
 }
 
 long pop(stack_t *stack) {
   int ret = stack->data[--stack->top];
-  if (stack->top <= stack->cap / 4) {
+  if (stack->cap > 64 && stack->top <= stack->cap / 4) {
     stack->cap /= 2;
-    stack->data = realloc(stack->data, stack->cap);
+    stack->data = realloc(stack->data, stack->cap * sizeof(long));
   }
   return ret;
 }
 
-uint8_t eat(FILE *in, char target) {
-  /* eat up to 255 characters to return the count */
+uint32_t eat(FILE *in, char target) {
+  /* eat up to 2^32-1 characters to return the count */
   int c;
-  uint8_t ret = 1; /* don't forget the byte initiated the process */
-  while ((c = fgetc(in)) == target && ret <= 255) {
+  uint32_t ret = 1; /* don't forget the byte initiated the process */
+  while ((c = fgetc(in)) == target && ret < 0xffffffff) {
     ++ret;
   }
   if (c != EOF) {
     ungetc(c, in);
   }
   return ret;
+}
+
+void emit_32(FILE *out, uint32_t oprand) {
+  fputc((uint8_t) (oprand >> 24), out);
+  fputc((uint8_t) ((oprand >> 16) & 0xff), out);
+  fputc((uint8_t) ((oprand >> 8) & 0xff), out);
+  fputc((uint8_t) ((oprand) & 0xff), out);
 }
 
 void transform(FILE *in, FILE *out) {
@@ -70,29 +78,33 @@ void transform(FILE *in, FILE *out) {
     switch (c = fgetc(in)) {
       case '-': {
         fputc(I_DEC, out);
-        fputc(eat(in, '-'), out);
+        uint32_t oprand = eat(in, '-');
+        assert(oprand < 256);
+        fputc((uint8_t) oprand, out);
 	break;
       }
       case '+': {
         fputc(I_INC, out);
-        fputc(eat(in, '+'), out);
+        uint32_t oprand = eat(in, '+');
+        assert(oprand < 256);
+        fputc((uint8_t) oprand, out);
 	break;
       }
       case '<': {
         fputc(I_SHL, out);
-        fputc(eat(in, '<'), out);
+        emit_32(out, eat(in, '<'));
 	break;
       }
       case '>': {
         fputc(I_SHR, out);
-        fputc(eat(in, '>'), out);
+        emit_32(out, eat(in, '>'));
 	break;
       }
       case '[': {
         fputc(I_JZ, out);
 	long pos = ftell(out);
 	push(&st, pos);
-	fputc(0, out); /* we will come back later */
+	emit_32(out, 0); /* we will come back later */
 	break;
       }
       case ']': {
@@ -100,14 +112,10 @@ void transform(FILE *in, FILE *out) {
         long here = ftell(out);
         long there = pop(&st);
         long delta = here - there;
-        if (delta > 0xff) {
-          printf("you cannot jump away more than 255 bytes");
-          exit(1);
-        }
         fseek(out, there, SEEK_SET);
-        fputc(delta, out);
+        emit_32(out, delta);
         fseek(out, here, SEEK_SET);
-        fputc((uint8_t) -delta, out);
+        emit_32(out, -delta);
 	break;
       }
       case '.': {
