@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 
 uint8_t *pc;
 char *sp;
@@ -13,12 +14,11 @@ void interp() {
     &&jz,
     &&put,
     &&get,
-    &&clr
+    &&clr,
+    &&exit
   };
 
-  for(;;) {
-    goto *lut[*pc++];
-  }
+  goto *lut[*pc++];
 
 dec:
   (*sp) -= *pc++;
@@ -33,11 +33,11 @@ shr:
   sp += *pc++;
   goto *lut[*pc++];
 jnz:
-  if (*sp) pc += (signed) (*pc);
+  if (*sp) pc += (int8_t) (*pc);
   ++pc;
   goto *lut[*pc++];
 jz:
-  if (!*sp) pc += (signed) (*pc);
+  if (!*sp) pc += (int8_t) (*pc);
   ++pc;
   goto *lut[*pc++];
 put:
@@ -49,4 +49,6 @@ get:
 clr:
   *sp = 0;
   goto *lut[*pc++];
+exit:
+  exit(0);
 }

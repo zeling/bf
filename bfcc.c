@@ -12,7 +12,8 @@ enum bfinst {
   I_JZ,
   I_PUT,
   I_GET,
-  I_CLR
+  I_CLR,
+  I_EXIT
 };
 
 typedef struct stack {
@@ -122,6 +123,7 @@ void transform(FILE *in, FILE *out) {
         break;
     }
   } while (c != EOF);
+  fputc(I_EXIT, out);
 }
 
 int main(int argc, char **argv) {
