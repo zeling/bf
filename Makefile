@@ -1,22 +1,13 @@
 CC=gcc
 CFLAGS = -Wall -Werror -O2 -g $(U)
 
-all: bfcc bfvm
+all: bfi
 
-bfcc: bfcc.o
-	$(CC) -o bfcc bfcc.o
+bfi: bfi.o bfvm.o bfinst.o bfcc.o
+	$(CC) -o $@ $^
 
-bfcc.o: bfcc.c
-	$(CC) -c bfcc.c $(CFLAGS)
-
-bfinst.o: bfinst.c
-	$(CC) -c bfinst.c $(CFLAGS)
-
-bfvm.o: bfvm.c
-	$(CC) -c bfvm.c $(CFLAGS)
-
-bfvm: bfvm.o bfinst.o
-	$(CC) -o bfvm bfvm.o bfinst.o
+%.o: %.c
+	$(CC) -c $< $(CFLAGS)
 
 .phony clean:
-	rm *.o bfvm bfcc *.bfc
+	rm *.o bfi

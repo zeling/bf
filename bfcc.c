@@ -1,8 +1,8 @@
+#include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <unistd.h>
-#include <assert.h>
 
 enum bfinst {
   I_DEC = 0,
@@ -26,11 +26,7 @@ typedef struct stack {
 stack_t stack_new() {
 #define DEFAULT_SIZE 64
   long *data = malloc(sizeof(long) * DEFAULT_SIZE);
-  stack_t ret = {
-    .cap = DEFAULT_SIZE,
-    .top = 0,
-    .data = data
-  };
+  stack_t ret = {.cap = DEFAULT_SIZE, .top = 0, .data = data};
   return ret;
 }
 
@@ -38,7 +34,7 @@ void push(stack_t *stack, long pos) {
   if (stack->top >= stack->cap) {
     stack->cap *= 2;
     stack->data = realloc(stack->data, stack->cap * sizeof(long));
-  } 
+  }
   stack->data[stack->top++] = pos;
 }
 
@@ -65,10 +61,10 @@ uint32_t eat(FILE *in, char target) {
 }
 
 void emit_32(FILE *out, uint32_t oprand) {
-  fputc((uint8_t) (oprand >> 24), out);
-  fputc((uint8_t) ((oprand >> 16) & 0xff), out);
-  fputc((uint8_t) ((oprand >> 8) & 0xff), out);
-  fputc((uint8_t) ((oprand) & 0xff), out);
+  fputc((uint8_t)(oprand >> 24), out);
+  fputc((uint8_t)((oprand >> 16) & 0xff), out);
+  fputc((uint8_t)((oprand >> 8) & 0xff), out);
+  fputc((uint8_t)((oprand)&0xff), out);
 }
 
 void transform(FILE *in, FILE *out) {
@@ -80,32 +76,32 @@ void transform(FILE *in, FILE *out) {
         fputc(I_DEC, out);
         uint32_t oprand = eat(in, '-');
         assert(oprand < 256);
-        fputc((uint8_t) oprand, out);
-	break;
+        fputc((uint8_t)oprand, out);
+        break;
       }
       case '+': {
         fputc(I_INC, out);
         uint32_t oprand = eat(in, '+');
         assert(oprand < 256);
-        fputc((uint8_t) oprand, out);
-	break;
+        fputc((uint8_t)oprand, out);
+        break;
       }
       case '<': {
         fputc(I_SHL, out);
         emit_32(out, eat(in, '<'));
-	break;
+        break;
       }
       case '>': {
         fputc(I_SHR, out);
         emit_32(out, eat(in, '>'));
-	break;
+        break;
       }
       case '[': {
         fputc(I_JZ, out);
-	long pos = ftell(out);
-	push(&st, pos);
-	emit_32(out, 0); /* we will come back later */
-	break;
+        long pos = ftell(out);
+        push(&st, pos);
+        emit_32(out, 0); /* we will come back later */
+        break;
       }
       case ']': {
         fputc(I_JNZ, out);
@@ -116,15 +112,15 @@ void transform(FILE *in, FILE *out) {
         emit_32(out, delta);
         fseek(out, here, SEEK_SET);
         emit_32(out, -delta);
-	break;
+        break;
       }
       case '.': {
         fputc(I_PUT, out);
-	break;
+        break;
       }
       case ',': {
         fputc(I_GET, out);
-	break;
+        break;
       }
       default:
         /* skip */
@@ -132,8 +128,10 @@ void transform(FILE *in, FILE *out) {
     }
   } while (c != EOF);
   fputc(I_EXIT, out);
+  fflush(out);
 }
 
+#if 0
 int main(int argc, char **argv) {
   if (argc < 2) {
     printf("fbcc [-otarget] source\n");
@@ -142,7 +140,7 @@ int main(int argc, char **argv) {
   char *tname = "a.bfc";
   int ch;
   while ((ch = getopt(argc, argv, "o::")) != -1) {
-    switch(ch) {
+    switch (ch) {
       case 'o':
         tname = optarg;
         break;
@@ -151,7 +149,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
   }
-    
+
   FILE *source = fopen(argv[optind], "r");
   if (!source) {
     perror("fopen");
@@ -167,3 +165,4 @@ int main(int argc, char **argv) {
   fclose(target);
   return 0;
 }
+#endif
