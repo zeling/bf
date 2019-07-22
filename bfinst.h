@@ -1,5 +1,5 @@
 /*
- * Brainf*ck interface.
+ * Virtual machine instructions.
  *
  * Copyright (c) 2019 Zeling Feng
  *
@@ -23,24 +23,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#pragma once
-#include <stdio.h>
-
-#include "dynbuf.h"
-
-typedef struct bf_context {
-    dynbuf_t bytecode;
-    char *tape;
-    size_t npage;
-
-    int (*interp)(struct bf_context *);
-} bf_context_t;
-
-void bf_init2(bf_context_t *ctx, int (*interp)(bf_context_t *));
-void bf_init(bf_context_t *ctx);
-
-int bf_load_file(bf_context_t *ctx, FILE *src);
-void bf_dump_bytecode(bf_context_t *ctx, FILE *dst);
-int bf_run(bf_context_t *ctx, size_t npage);
-
-void bf_free(bf_context_t *ctx);
+#ifdef DEF
+DEF(DEC)
+DEF(INC)
+DEF(SHL)
+DEF(SHR)
+DEF(JNZ)
+DEF(JZ)
+DEF(PUT)
+DEF(GET)
+DEF(CLR)
+DEF(HLT)
+#undef DEF
+#else
+#error "DEF" not defined
+#endif

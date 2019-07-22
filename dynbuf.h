@@ -1,5 +1,5 @@
 /*
- * Brainf*ck interface.
+ * Dynamic buffer API.
  *
  * Copyright (c) 2019 Zeling Feng
  *
@@ -24,23 +24,29 @@
  * SOFTWARE.
  */
 #pragma once
-#include <stdio.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#include "dynbuf.h"
+typedef struct dynbuf {
+    size_t cap;
+    size_t size;
+    uint8_t *data;
+} dynbuf_t;
 
-typedef struct bf_context {
-    dynbuf_t bytecode;
-    char *tape;
-    size_t npage;
+void dynbuf_init(dynbuf_t *buf);
+int dynbuf_realloc(dynbuf_t *buf, size_t new_size);
+int dynbuf_put(dynbuf_t *buf, const uint8_t *data, size_t count);
+size_t dynbuf_size(dynbuf_t *buf);
+void dynbuf_free(dynbuf_t *buf);
 
-    int (*interp)(struct bf_context *);
-} bf_context_t;
+#define DYNBUF_ELEMENT_LIST(T)                                                 \
+    T(uint8_t)                                                                 \
+    T(size_t)
 
-void bf_init2(bf_context_t *ctx, int (*interp)(bf_context_t *));
-void bf_init(bf_context_t *ctx);
+#define DECLARE_DYNBUF(type)                                                   \
+    int dynbuf_put_##type(dynbuf_t *, type);                                   \
+    type dynbuf_pop_##type(dynbuf_t *);
 
-int bf_load_file(bf_context_t *ctx, FILE *src);
-void bf_dump_bytecode(bf_context_t *ctx, FILE *dst);
-int bf_run(bf_context_t *ctx, size_t npage);
+DYNBUF_ELEMENT_LIST(DECLARE_DYNBUF)
 
-void bf_free(bf_context_t *ctx);
+#undef DECLARE_DYNBUF
