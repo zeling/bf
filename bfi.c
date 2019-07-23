@@ -54,5 +54,6 @@ int main(int argc, char **argv)
     if (bf_run(&ctx, 2) < 0) {
         die("bf_run");
     }
+    bf_free(&ctx);
     return 0;
 }

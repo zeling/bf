@@ -120,6 +120,7 @@ int bf_load_file(bf_context_t *ctx, FILE *src)
     dynbuf_put_uint8_t(bc, HLT);
 
 out:
+    dynbuf_free(&stack);
     fclose(src);
     return ret;
 #undef EMITS
