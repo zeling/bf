@@ -93,15 +93,16 @@ int bf_load_file(bf_context_t *ctx, FILE *src)
             dynbuf_put_uint8_t(bc, JZ);
             size_t here = dynbuf_size(bc);
             dynbuf_put_size_t(&stack, here);
-            dynbuf_put_size_t(bc, 0);
+            dynbuf_put_ptrdiff_t(bc, 0);
             break;
         }
         case ']': {
             dynbuf_put_uint8_t(bc, JNZ);
             size_t here = dynbuf_size(bc);
             size_t there = dynbuf_pop_size_t(&stack);
-            dynbuf_put_size_t(bc, there - here);
-            *(size_t *)(bc->data + there) = here - there;
+            ptrdiff_t diff = here - there;
+            dynbuf_put_ptrdiff_t(bc, -diff);
+            memcpy(bc->data + there, &diff, sizeof(ptrdiff_t));
             break;
         }
         case '.': {
@@ -187,10 +188,16 @@ static size_t eat(FILE *in, char target)
     return ret;
 }
 
-static inline size_t get_size_t(uint8_t *pc)
-{
-    return *(size_t *)pc;
-}
+#define DEFINE_GET_T(type)                                                     \
+    static inline type get_##type(uint8_t *pc)                                 \
+    {                                                                          \
+        type ret;                                                              \
+        memcpy(&ret, pc, sizeof(type));                                        \
+        return ret;                                                            \
+    }
+
+DEFINE_GET_T(size_t)
+DEFINE_GET_T(ptrdiff_t)
 
 static int bf_bytecode_interp(uint8_t *pc, char *sp)
 {
@@ -226,14 +233,14 @@ static int bf_bytecode_interp(uint8_t *pc, char *sp)
 
     CASE(JNZ):
         if (*sp)
-            pc += get_size_t(pc);
-        pc += sizeof(size_t);
+            pc += get_ptrdiff_t(pc);
+        pc += sizeof(ptrdiff_t);
         BREAK;
 
     CASE(JZ):
         if (!*sp)
-            pc += get_size_t(pc);
-        pc += sizeof(size_t);
+            pc += get_ptrdiff_t(pc);
+        pc += sizeof(ptrdiff_t);
         BREAK;
 
     CASE(PUT):

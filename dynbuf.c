@@ -87,7 +87,8 @@ void dynbuf_free(dynbuf_t *buf)
         size_t size = dynbuf_size(buf);                                        \
         assert(size >= sizeof(type));                                          \
         size -= sizeof(type);                                                  \
-        type ret = *(type *)(buf->data + size);                                \
+        type ret;                                                              \
+        memcpy(&ret, buf->data + size, sizeof(type));                          \
         dynbuf_realloc(buf, size);                                             \
         buf->size = size;                                                      \
         return ret;                                                            \

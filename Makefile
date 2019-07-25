@@ -1,6 +1,7 @@
-CC=gcc
-CFLAGS = -Wall -Werror -O2 -g -fsanitize=address
-LDFLAGS = -fsanitize=address
+CC=clang
+SANITIZER = -fsanitize=address,undefined
+CFLAGS = -Wall -Werror -O2 -g $(SANITIZER)
+LDFLAGS = $(SANITIZER)
 
 all: bfi
 

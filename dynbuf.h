@@ -41,7 +41,8 @@ void dynbuf_free(dynbuf_t *buf);
 
 #define DYNBUF_ELEMENT_LIST(T)                                                 \
     T(uint8_t)                                                                 \
-    T(size_t)
+    T(size_t)                                                                  \
+    T(ptrdiff_t)
 
 #define DECLARE_DYNBUF(type)                                                   \
     int dynbuf_put_##type(dynbuf_t *, type);                                   \
