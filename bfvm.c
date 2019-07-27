@@ -99,6 +99,10 @@ int bf_load_file(bf_context_t *ctx, FILE *src)
         case ']': {
             dynbuf_put_uint8_t(bc, JNZ);
             size_t here = dynbuf_size(bc);
+            if (dynbuf_size(&stack) < sizeof(size_t)) {
+                ret = -1;
+                goto out;
+            }
             size_t there = dynbuf_pop_size_t(&stack);
             ptrdiff_t diff = here - there;
             dynbuf_put_ptrdiff_t(bc, -diff);
