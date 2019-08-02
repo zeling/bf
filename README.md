@@ -1,4 +1,4 @@
-#Brainf*ck
+# Brainf*ck
 
 ## Build
 It should be fairly easy for anyone who has `make` installed.
