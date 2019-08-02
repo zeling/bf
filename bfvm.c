@@ -71,33 +71,33 @@ int bf_load_file(bf_context_t *ctx, FILE *src)
         switch (c = fgetc(src)) {
         case '-': {
             EMITC(DEC);
-            dynbuf_put_size_t(bc, eat(src, '-'));
+            EMITS(eat(src, '-'));
             break;
         }
         case '+': {
-            dynbuf_put_uint8_t(bc, INC);
-            dynbuf_put_size_t(bc, eat(src, '+'));
+            EMITC(INC);
+            EMITS(eat(src, '+'));
             break;
         }
         case '<': {
-            dynbuf_put_uint8_t(bc, SHL);
-            dynbuf_put_size_t(bc, eat(src, '<'));
+            EMITC(SHL);
+            EMITS(eat(src, '<'));
             break;
         }
         case '>': {
-            dynbuf_put_uint8_t(bc, SHR);
-            dynbuf_put_size_t(bc, eat(src, '>'));
+            EMITC(SHR);
+            EMITS(eat(src, '>'));
             break;
         }
         case '[': {
-            dynbuf_put_uint8_t(bc, JZ);
+            EMITC(JZ);
             size_t here = dynbuf_size(bc);
             dynbuf_put_size_t(&stack, here);
-            dynbuf_put_ptrdiff_t(bc, 0);
+            EMIT(ptrdiff_t, 0);
             break;
         }
         case ']': {
-            dynbuf_put_uint8_t(bc, JNZ);
+            EMITC(JNZ);
             size_t here = dynbuf_size(bc);
             if (dynbuf_size(&stack) < sizeof(size_t)) {
                 ret = -1;
@@ -105,16 +105,16 @@ int bf_load_file(bf_context_t *ctx, FILE *src)
             }
             size_t there = dynbuf_pop_size_t(&stack);
             ptrdiff_t diff = here - there;
-            dynbuf_put_ptrdiff_t(bc, -diff);
+            EMIT(ptrdiff_t, -diff);
             memcpy(bc->data + there, &diff, sizeof(ptrdiff_t));
             break;
         }
         case '.': {
-            dynbuf_put_uint8_t(bc, PUT);
+            EMITC(PUT);
             break;
         }
         case ',': {
-            dynbuf_put_uint8_t(bc, GET);
+            EMITC(GET);
             break;
         }
         default:
@@ -123,6 +123,7 @@ int bf_load_file(bf_context_t *ctx, FILE *src)
         }
     } while (c != EOF);
     dynbuf_put_uint8_t(bc, HLT);
+    assert(dynbuf_size(&stack) == 0);
 
 out:
     dynbuf_free(&stack);
@@ -260,6 +261,7 @@ static int bf_bytecode_interp(uint8_t *pc, char *sp)
         BREAK;
 
     CASE(HLT):
+        fflush(stdout);
         RETURN(0);
     }
     /* clang-format on */
