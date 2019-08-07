@@ -28,19 +28,19 @@
 
 #include "dynbuf.h"
 
-typedef struct bf_context {
+typedef struct bf {
     dynbuf_t bytecode;
-    char *tape;
+    uint8_t *tape;
     size_t npage;
 
-    int (*interp)(struct bf_context *);
-} bf_context_t;
+    int (*interp)(struct bf *);
+} bf_t;
 
-void bf_init2(bf_context_t *ctx, int (*interp)(bf_context_t *));
-void bf_init(bf_context_t *ctx);
+void bf_init2(bf_t *ctx, int (*interp)(bf_t *));
+void bf_init(bf_t *ctx);
 
-int bf_load_file(bf_context_t *ctx, FILE *src);
-void bf_dump_bytecode(bf_context_t *ctx, FILE *dst);
-int bf_run(bf_context_t *ctx, size_t npage);
+int bf_load_file(bf_t *ctx, FILE *src);
+void bf_dump_bytecode(bf_t *ctx, FILE *dst);
+int bf_run(bf_t *ctx, size_t npage);
 
-void bf_free(bf_context_t *ctx);
+void bf_free(bf_t *ctx);

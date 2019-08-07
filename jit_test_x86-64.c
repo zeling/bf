@@ -1,5 +1,5 @@
 /*
- * Brainf*ck interpreter.
+ * x86-64 JIT test.
  *
  * Copyright (c) 2019 Zeling Feng
  *
@@ -23,38 +23,47 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
-#include "bf.h"
+#include <assert.h>
+#include <stdio.h>
+
+#include "dynbuf.h"
 #include "jit.h"
 
-static void die(const char *msg)
+#define IMM(x) (uint8_t) x, 0, 0, 0, 0, 0, 0, 0
+
+void dump_code_page(jit_t *ctx, int hex, FILE *f)
 {
-    perror(msg);
-    exit(1);
+    assert(f);
+    if (hex) {
+        fwrite(ctx->code.data, 1, ctx->code.size, f);
+    } else {
+        for (int i = 0; i < ctx->code.size; i++) {
+            fprintf(f, "%02x ", ctx->code.data[i]);
+        }
+    }
 }
 
 int main(int argc, char **argv)
 {
-    FILE *src;
-    if (argc == 1) {
-        src = stdin;
-    } else {
-        src = fopen(argv[1], "r");
-        if (!src) {
-            die("fopen");
-        }
-    }
-    bf_t bf;
-    bf_init_jit(&bf);
-    if (bf_load_file(&bf, src) < 0) {
-        die("bf_load_file");
-    }
-    if (bf_run(&bf, 2) < 0) {
-        die("bf_run");
-    }
-    bf_free(&bf);
-    return 0;
+    jit_t ctx;
+    jit_init(&ctx);
+
+    /* clang-format off */
+    static uint8_t test_prog[] = {
+        JZ,     IMM(54),
+        DEC,    IMM(1),
+        JZ,     IMM(18),
+        DEC,    IMM(4),
+        JNZ,    IMM(-18),
+        DEC,    IMM(1),
+        JNZ,    IMM(-54),
+    };
+    /* clang-format on */
+
+    jit_compile_loop(&ctx, test_prog + 18, test_prog + 36);
+    jit_compile_loop(&ctx, test_prog,
+                     test_prog + sizeof(test_prog) - 1 - sizeof(size_t));
+
+    dump_code_page(&ctx, argc > 1, argv[1] ? fopen(argv[1], "w+") : stdout);
 }

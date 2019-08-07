@@ -1,5 +1,5 @@
 /*
- * Brainf*ck interpreter.
+ * Common JIT interface.
  *
  * Copyright (c) 2019 Zeling Feng
  *
@@ -23,38 +23,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
+#pragma once
 #include "bf.h"
-#include "jit.h"
+#include "dynbuf.h"
 
-static void die(const char *msg)
-{
-    perror(msg);
-    exit(1);
-}
+enum {
+#define DEF(inst) inst,
+#include "bfinst.h"
+    CJZ,  /* the following ptrdiff_t is a forwarding pointer */
+    CJNZ, /* the following ptrdiff_t is a forwarding pointer */
+};
 
-int main(int argc, char **argv)
-{
-    FILE *src;
-    if (argc == 1) {
-        src = stdin;
-    } else {
-        src = fopen(argv[1], "r");
-        if (!src) {
-            die("fopen");
-        }
-    }
-    bf_t bf;
-    bf_init_jit(&bf);
-    if (bf_load_file(&bf, src) < 0) {
-        die("bf_load_file");
-    }
-    if (bf_run(&bf, 2) < 0) {
-        die("bf_run");
-    }
-    bf_free(&bf);
-    return 0;
-}
+typedef struct jit {
+    dynbuf_t code;
+    /* total pages currently mapped */
+    int npage;
+    size_t entry;
+} jit_t;
+
+void jit_init(jit_t *ctx);
+void jit_free(jit_t *ctx);
+
+void jit_make_writable(jit_t *ctx);
+void jit_make_executable(jit_t *ctx);
+void jit_enter(jit_t *ctx, uint8_t *sp);
+
+size_t jit_compile_loop(jit_t *ctx, uint8_t *start, uint8_t *end);
+void bf_init_jit(bf_t *bf);
