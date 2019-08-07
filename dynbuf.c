@@ -29,25 +29,46 @@
 
 #include "dynbuf.h"
 
-void inline dynbuf_init(dynbuf_t *buf)
+static int dynbuf_default_realloc(dynbuf_t *, size_t);
+
+void dynbuf_init(dynbuf_t *buf)
+{
+    dynbuf_init1(buf, &dynbuf_default_realloc);
+}
+
+void dynbuf_init1(dynbuf_t *buf, dynbuf_realloc_t realloc)
 {
     memset(buf, 0, sizeof(dynbuf_t));
     buf->data = NULL;
     buf->cap = 0;
     buf->size = 0;
+    buf->realloc = realloc;
 }
 
 int dynbuf_realloc(dynbuf_t *buf, size_t new_size)
+{
+    return buf->realloc(buf, new_size);
+}
+
+int dynbuf_default_realloc(dynbuf_t *buf, size_t new_size)
 {
     size_t cap = buf->cap;
     if (cap >= new_size && new_size >= cap / 2) {
         return 0;
     }
 
+    if (!new_size) {
+        if (buf->data)
+            free(buf->data);
+        buf->data = NULL;
+        buf->cap = 0;
+    }
+
     new_size = new_size + (new_size >> 3) + (new_size < 9 ? 3 : 6);
     if (!(buf->data = realloc(buf->data, new_size))) {
         return -1;
     }
+
     buf->cap = new_size;
     return 0;
 }
@@ -71,7 +92,7 @@ size_t inline dynbuf_size(dynbuf_t *buf)
 void dynbuf_free(dynbuf_t *buf)
 {
     if (buf->data)
-        free(buf->data);
+        buf->realloc(buf, 0);
     memset(buf, 0, sizeof(dynbuf_t));
 }
 

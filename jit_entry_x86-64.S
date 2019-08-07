@@ -1,5 +1,5 @@
 /*
- * Brainf*ck interpreter.
+ * x86-64 JIT entry trampoline.
  *
  * Copyright (c) 2019 Zeling Feng
  *
@@ -23,38 +23,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
-#include "bf.h"
-#include "jit.h"
+#if defined(__APPLE__)
+/* Good job, Apple! */
+#define SYM(x) _##x
+#else
+#define SYM(x) x
+#endif
 
-static void die(const char *msg)
-{
-    perror(msg);
-    exit(1);
-}
-
-int main(int argc, char **argv)
-{
-    FILE *src;
-    if (argc == 1) {
-        src = stdin;
-    } else {
-        src = fopen(argv[1], "r");
-        if (!src) {
-            die("fopen");
-        }
-    }
-    bf_t bf;
-    bf_init_jit(&bf);
-    if (bf_load_file(&bf, src) < 0) {
-        die("bf_load_file");
-    }
-    if (bf_run(&bf, 2) < 0) {
-        die("bf_run");
-    }
-    bf_free(&bf);
-    return 0;
-}
+.global SYM(jit_entry)
+SYM(jit_entry):
+    pushq %rcx
+    pushq %r14
+    pushq %r15
+    movq %rdi, %rcx
+    movq SYM(getchar)@GOTPCREL(%rip), %r14
+    movq SYM(putchar)@GOTPCREL(%rip), %r15
+    call L1
+    popq %r15
+    popq %r14
+    popq %rcx
+    ret
+L1:
+    pushq %rsi
+    ret

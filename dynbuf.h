@@ -31,9 +31,13 @@ typedef struct dynbuf {
     size_t cap;
     size_t size;
     uint8_t *data;
+    int (*realloc)(struct dynbuf *, size_t);
 } dynbuf_t;
 
+typedef int (*dynbuf_realloc_t)(dynbuf_t *, size_t);
+
 void dynbuf_init(dynbuf_t *buf);
+void dynbuf_init1(dynbuf_t *buf, dynbuf_realloc_t realloc);
 int dynbuf_realloc(dynbuf_t *buf, size_t new_size);
 int dynbuf_put(dynbuf_t *buf, const uint8_t *data, size_t count);
 size_t dynbuf_size(dynbuf_t *buf);
@@ -42,7 +46,9 @@ void dynbuf_free(dynbuf_t *buf);
 #define DYNBUF_ELEMENT_LIST(T)                                                 \
     T(uint8_t)                                                                 \
     T(size_t)                                                                  \
-    T(ptrdiff_t)
+    T(ptrdiff_t)                                                               \
+    T(uint64_t)                                                                \
+    T(uint32_t)
 
 #define DECLARE_DYNBUF(type)                                                   \
     int dynbuf_put_##type(dynbuf_t *, type);                                   \

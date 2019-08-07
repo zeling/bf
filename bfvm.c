@@ -41,23 +41,23 @@ enum {
 #include "bfinst.h"
 };
 
-static int bf_bytecode_interp(uint8_t *pc, char *sp);
-static int bf_default_interp(bf_context_t *ctx);
+static int bf_bytecode_interp(uint8_t *pc, uint8_t *sp);
+static int bf_default_interp(bf_t *ctx);
 static size_t eat(FILE *in, char target);
 
-void bf_init(bf_context_t *ctx)
+void bf_init(bf_t *ctx)
 {
     bf_init2(ctx, bf_default_interp);
 }
 
-void bf_init2(bf_context_t *ctx, int (*interp)(bf_context_t *))
+void bf_init2(bf_t *ctx, int (*interp)(bf_t *))
 {
-    memset(ctx, 0, sizeof(bf_context_t));
+    memset(ctx, 0, sizeof(bf_t));
     dynbuf_init(&ctx->bytecode);
     ctx->interp = interp;
 }
 
-int bf_load_file(bf_context_t *ctx, FILE *src)
+int bf_load_file(bf_t *ctx, FILE *src)
 {
 #define EMIT(kind, expr)                                                       \
     if ((ret = dynbuf_put_##kind(bc, expr)) < 0)                               \
@@ -134,14 +134,14 @@ out:
 #undef EMIT
 }
 
-static inline void bf_unmap_tape(bf_context_t *ctx)
+static inline void bf_unmap_tape(bf_t *ctx)
 {
     size_t pgsize = getpagesize();
     assert(munmap(ctx->tape - (ctx->npage + 2) * pgsize / 2,
                   (ctx->npage + 2) * pgsize) == 0);
 }
 
-int bf_run(bf_context_t *ctx, size_t npage)
+int bf_run(bf_t *ctx, size_t npage)
 {
     assert(ctx->interp);
     size_t pgsize = getpagesize();
@@ -163,7 +163,7 @@ int bf_run(bf_context_t *ctx, size_t npage)
     return ctx->interp(ctx);
 }
 
-void bf_dump_bytecode(bf_context_t *ctx, FILE *dst)
+void bf_dump_bytecode(bf_t *ctx, FILE *dst)
 {
     for (size_t i = 0; i < dynbuf_size(&ctx->bytecode); i++) {
         fputc(ctx->bytecode.data[i], dst);
@@ -171,13 +171,13 @@ void bf_dump_bytecode(bf_context_t *ctx, FILE *dst)
     fflush(dst);
 }
 
-void bf_free(bf_context_t *ctx)
+void bf_free(bf_t *ctx)
 {
     dynbuf_free(&ctx->bytecode);
     if (ctx->tape) {
         bf_unmap_tape(ctx);
     }
-    memset(ctx, 0, sizeof(bf_context_t));
+    memset(ctx, 0, sizeof(bf_t));
 }
 
 static size_t eat(FILE *in, char target)
@@ -194,7 +194,7 @@ static size_t eat(FILE *in, char target)
 }
 
 #define DEFINE_GET_T(type)                                                     \
-    static inline type get_##type(uint8_t *pc)                                 \
+    type get_##type(uint8_t *pc)                                               \
     {                                                                          \
         type ret;                                                              \
         memcpy(&ret, pc, sizeof(type));                                        \
@@ -204,7 +204,7 @@ static size_t eat(FILE *in, char target)
 DEFINE_GET_T(size_t)
 DEFINE_GET_T(ptrdiff_t)
 
-static int bf_bytecode_interp(uint8_t *pc, char *sp)
+static int bf_bytecode_interp(uint8_t *pc, uint8_t *sp)
 {
     size_t operand;
     static const void *const lut[] = {
@@ -267,7 +267,7 @@ static int bf_bytecode_interp(uint8_t *pc, char *sp)
     /* clang-format on */
 }
 
-static inline int bf_default_interp(bf_context_t *ctx)
+static inline int bf_default_interp(bf_t *ctx)
 {
     return bf_bytecode_interp(ctx->bytecode.data, ctx->tape);
 }
