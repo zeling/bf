@@ -61,9 +61,9 @@ int main(int argc, char **argv)
     };
     /* clang-format on */
 
-    jit_compile_loop(&ctx, test_prog + 18, test_prog + 36);
+    //    jit_compile_loop(&ctx, test_prog + 18, test_prog + 36);
     jit_compile_loop(&ctx, test_prog,
-                     test_prog + sizeof(test_prog) - 1 - sizeof(size_t));
+                     test_prog + sizeof(test_prog) - 1 - sizeof(size_t), 1);
 
     dump_code_page(&ctx, argc > 1, argv[1] ? fopen(argv[1], "w+") : stdout);
 }

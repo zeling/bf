@@ -33,16 +33,16 @@
 
 .global SYM(jit_entry)
 SYM(jit_entry):
-    pushq %rcx
+    pushq %rbx
     pushq %r14
     pushq %r15
-    movq %rdi, %rcx
+    movq %rdi, %rbx
     movq SYM(getchar)@GOTPCREL(%rip), %r14
     movq SYM(putchar)@GOTPCREL(%rip), %r15
     call L1
     popq %r15
     popq %r14
-    popq %rcx
+    popq %rbx
     ret
 L1:
     pushq %rsi
