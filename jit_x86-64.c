@@ -35,7 +35,7 @@
 
 /* registers:
  * - rdi: used to pass arguments,
- * - rcx: hold the pointer to sp,
+ * - rdx: hold the pointer to sp,
  * - r14: getc,
  * - r15: putc,
  * using r14 r15 can save us one byte in indirect call */
@@ -70,7 +70,7 @@ void jit_compile_shl(jit_t *ctx, size_t arg)
         // imm32 is enough to hold arg
         EMIT_BYTE(REX | REX_W);
         EMIT_BYTE(0x81); // ADD
-        EMIT_BYTE(0xE9); // reg = 5
+        EMIT_BYTE(0xEB); // reg = 5
         EMIT_IMM32(arg);
     } else {
         EMIT_BYTE(REX | REX_W);
@@ -79,7 +79,7 @@ void jit_compile_shl(jit_t *ctx, size_t arg)
 
         EMIT_BYTE(REX | REX_W);
         EMIT_BYTE(0x29);
-        EMIT_BYTE(0xC1);
+        EMIT_BYTE(0xC3);
     }
 }
 
@@ -89,7 +89,7 @@ void jit_compile_shr(jit_t *ctx, size_t arg)
         // imm32 is enough to hold arg
         EMIT_BYTE(REX | REX_W);
         EMIT_BYTE(0x81); // ADD
-        EMIT_BYTE(0xC1);
+        EMIT_BYTE(0xC3);
         EMIT_IMM32(arg);
     } else {
         EMIT_BYTE(REX | REX_W);
@@ -98,21 +98,21 @@ void jit_compile_shr(jit_t *ctx, size_t arg)
 
         EMIT_BYTE(REX | REX_W);
         EMIT_BYTE(0x01); // d: 0, s: 1
-        EMIT_BYTE(0xC1); // MOD: b11, REG: rax, R/M: rcx
+        EMIT_BYTE(0xC3); // MOD: b11, REG: rax, R/M: rcx
     }
 }
 
 void jit_compile_inc(jit_t *ctx, uint8_t arg)
 {
     EMIT_BYTE(0x80); // ADD
-    EMIT_BYTE(0x01); // ECX
+    EMIT_BYTE(0x03); // EBX
     EMIT_BYTE(arg);
 }
 
 void jit_compile_dec(jit_t *ctx, uint8_t arg)
 {
     EMIT_BYTE(0x80);
-    EMIT_BYTE(0x29); // MOD: 0x00, REG: 5, R/M: 1
+    EMIT_BYTE(0x2B); // MOD: 0x00, REG: 5, R/M: 1
     EMIT_BYTE(arg);
 }
 
@@ -123,14 +123,14 @@ void jit_compile_get(jit_t *ctx)
     EMIT_BYTE(0xd6);
 
     EMIT_BYTE(0x88);
-    EMIT_BYTE(0x01);
+    EMIT_BYTE(0x03);
 }
 
 void jit_compile_put(jit_t *ctx)
 {
     EMIT_BYTE(REX);
     EMIT_BYTE(0x8A);
-    EMIT_BYTE(0x39);
+    EMIT_BYTE(0x3B);
 
     EMIT_BYTE(REX | REX_B);
     EMIT_BYTE(0xFF);
@@ -141,13 +141,13 @@ void jit_compile_put(jit_t *ctx)
  * - L1: start of the loop.
  * - L2: end of the loop.
  *
- * cmp BYTE PTR [rcx], 0
+ * cmp BYTE PTR [rdx], 0
  * jz L2
  * L1:
  *
  * ....
  *
- * cmp BYTE PTR [rcx], 0
+ * cmp BYTE PTR [rdx], 0
  * jnz L1:
  * L2:
  *
@@ -157,7 +157,7 @@ void jit_compile_put(jit_t *ctx)
 size_t jit_compile_jnz(jit_t *ctx)
 {
     EMIT_BYTE(0x80);
-    EMIT_BYTE(0x39);
+    EMIT_BYTE(0x3B);
     EMIT_BYTE(0x00);
 
     EMIT_BYTE(0x0F);
@@ -167,7 +167,7 @@ size_t jit_compile_jnz(jit_t *ctx)
 size_t jit_compile_jz(jit_t *ctx)
 {
     EMIT_BYTE(0x80);
-    EMIT_BYTE(0x39);
+    EMIT_BYTE(0x3B);
     EMIT_BYTE(0x00);
 
     EMIT_BYTE(0x0F);
@@ -214,7 +214,7 @@ void jit_patch_ret_jmp(jit_t *ctx, size_t offset)
  * ret
  * [4-byte padding]
  */
-size_t jit_compile_loop(jit_t *ctx, uint8_t *start, uint8_t *end)
+size_t jit_compile_loop(jit_t *ctx, uint8_t *start, uint8_t *end, int outmost)
 {
     size_t operand;
     ptrdiff_t rel, fptr;
@@ -226,8 +226,8 @@ size_t jit_compile_loop(jit_t *ctx, uint8_t *start, uint8_t *end)
     *start = CJZ;
     *end = CJNZ;
 
-    size_t l2_ptr = jit_compile_jz(ctx);
     size_t entry = dynbuf_size(&ctx->code);
+    size_t l2_ptr = jit_compile_jz(ctx);
     memcpy(end + 1, &l2_ptr, sizeof(size_t));
 
     uint8_t *pc = start + 1 + sizeof(ptrdiff_t), *pc1;
@@ -259,7 +259,7 @@ size_t jit_compile_loop(jit_t *ctx, uint8_t *start, uint8_t *end)
             /* for some reason the part of the code is still not compiled */
             FETCH_OP(rel);
             pc1 = pc - 1 - sizeof(ptrdiff_t);
-            jit_compile_loop(ctx, pc1, pc1 + rel);
+            jit_compile_loop(ctx, pc1, pc1 + rel, 0);
             pc += rel;
             break;
         case JNZ:
@@ -286,6 +286,7 @@ size_t jit_compile_loop(jit_t *ctx, uint8_t *start, uint8_t *end)
     size_t l1_ptr = jit_compile_jnz(ctx);
     jit_patch_abs32(ctx, l1_ptr, l2_ptr + 4);
     jit_patch_abs32(ctx, l2_ptr, l1_ptr + 4);
-    jit_compile_ret(ctx);
+    if (outmost)
+        jit_compile_ret(ctx);
     return entry;
 }

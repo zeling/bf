@@ -1,5 +1,5 @@
 SANITIZER = -fsanitize=address,undefined
-CFLAGS = -Wall -Werror -O2 -g $(SANITIZER)
+CFLAGS = -Wall -Werror -O2 -g $(SANITIZER) -D_GNU_SOURCE
 LDFLAGS = $(SANITIZER) -lc
 
 all: bfi test quine.bf

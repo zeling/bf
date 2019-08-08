@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -148,7 +149,7 @@ static int bf_jit_interp(bf_t *bf)
             pc1 = pc + get_ptrdiff_t(pc) - 1;
             if (*sp) {
                 jit_make_writable(&ctx);
-                ctx.entry = jit_compile_loop(&ctx, pc1, pc - 1);
+                ctx.entry = jit_compile_loop(&ctx, pc1, pc - 1, 1);
                 jit_make_executable(&ctx);
                 jit_enter(&ctx, sp);
             }
@@ -191,4 +192,6 @@ void bf_init_jit(bf_t *bf)
 
 void jit_free(jit_t *ctx)
 {
+    dynbuf_free(&ctx->code);
+    memset(ctx, 0, sizeof(jit_t));
 }
