@@ -97,12 +97,12 @@ void jit_make_executable(jit_t *ctx)
     mprotect(ctx->code.data, ctx->npage * pgsize, PROT_READ | PROT_EXEC);
 }
 
-extern void jit_entry(uintptr_t sp, uintptr_t pc);
+extern uintptr_t jit_entry(uintptr_t sp, uintptr_t pc);
 
-void jit_enter(jit_t *ctx, uint8_t *sp)
+uintptr_t jit_enter(jit_t *ctx, uint8_t *sp)
 {
     uintptr_t pc = ((uintptr_t)ctx->code.data) + ctx->entry;
-    jit_entry((uintptr_t)sp, pc);
+    return jit_entry((uintptr_t)sp, pc);
 }
 
 ptrdiff_t get_ptrdiff_t(uint8_t *pc);
@@ -151,7 +151,7 @@ static int bf_jit_interp(bf_t *bf)
                 jit_make_writable(&ctx);
                 ctx.entry = jit_compile_loop(&ctx, pc1, pc - 1, 1);
                 jit_make_executable(&ctx);
-                jit_enter(&ctx, sp);
+                sp = (uint8_t *)jit_enter(&ctx, sp);
             }
             pc += sizeof(ptrdiff_t);
             BREAK;

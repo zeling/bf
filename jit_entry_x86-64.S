@@ -40,6 +40,7 @@ SYM(jit_entry):
     movq SYM(getchar)@GOTPCREL(%rip), %r14
     movq SYM(putchar)@GOTPCREL(%rip), %r15
     call L1
+    movq %rbx, %rax
     popq %r15
     popq %r14
     popq %rbx

@@ -46,7 +46,7 @@ void jit_free(jit_t *ctx);
 
 void jit_make_writable(jit_t *ctx);
 void jit_make_executable(jit_t *ctx);
-void jit_enter(jit_t *ctx, uint8_t *sp);
+uintptr_t jit_enter(jit_t *ctx, uint8_t *sp);
 
 size_t jit_compile_loop(jit_t *ctx, uint8_t *start, uint8_t *end, int outmost);
 void bf_init_jit(bf_t *bf);
