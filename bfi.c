@@ -36,23 +36,52 @@ static void die(const char *msg)
     exit(1);
 }
 
+void usage(const char *name)
+{
+    printf("%s [-j] [-n npage] [file]\n", name);
+    exit(2);
+}
+
 int main(int argc, char **argv)
 {
     FILE *src;
-    if (argc == 1) {
+    bf_t bf;
+    int opt, jit = 0, npage = 2;
+
+    while ((opt = getopt(argc, argv, "jp:")) != -1) {
+        switch (opt) {
+        case 'j':
+            jit = 1;
+            break;
+        case 'p':
+            npage = atoi(optarg);
+            if (npage <= 0) {
+                puts("npage must be positive");
+                usage(argv[0]);
+            }
+            break;
+        default:
+            printf("Unrecognized option: %c\n", opt);
+            usage(argv[0]);
+        }
+    }
+    if (optind >= argc) {
         src = stdin;
     } else {
-        src = fopen(argv[1], "r");
+        src = fopen(argv[optind], "r");
         if (!src) {
             die("fopen");
         }
     }
-    bf_t bf;
-    bf_init_jit(&bf);
+    if (jit) {
+        bf_init_jit(&bf);
+    } else {
+        bf_init(&bf);
+    }
     if (bf_load_file(&bf, src) < 0) {
         die("bf_load_file");
     }
-    if (bf_run(&bf, 2) < 0) {
+    if (bf_run(&bf, npage) < 0) {
         die("bf_run");
     }
     bf_free(&bf);
