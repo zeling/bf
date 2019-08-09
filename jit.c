@@ -61,15 +61,20 @@ int dynbuf_mmap_realloc(dynbuf_t *buf, size_t new_size)
     if (!old_size && new_size) {
         buf->data = mmap(0, new_size, PROT_READ | PROT_WRITE,
                          MAP_PRIVATE | MAP_ANON, -1, 0);
-        if (!buf->data)
+        if (buf->data == MAP_FAILED) {
             return -1;
+        }
     } else if (old_size && !new_size) {
         munmap(buf->data, old_size);
     } else if (old_size && new_size) {
         assert(buf->data);
-        mremap(buf->data, old_size, new_size, 0);
+        buf->data = mremap(buf->data, old_size, new_size, MREMAP_MAYMOVE);
+        if (buf->data == MAP_FAILED) {
+            return -1;
+        }
     }
     buf->cap = new_size;
+    ctx->npage = new_npage;
 #elif defined(__APPLE__)
     // lets do some silly things now:
     if (!buf->data) {

@@ -62,6 +62,7 @@ int dynbuf_default_realloc(dynbuf_t *buf, size_t new_size)
             free(buf->data);
         buf->data = NULL;
         buf->cap = 0;
+        return 0;
     }
 
     new_size = new_size + (new_size >> 3) + (new_size < 9 ? 3 : 6);
