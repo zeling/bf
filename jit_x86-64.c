@@ -55,6 +55,7 @@
         EMIT_BYTE(jmp);                                                        \
         size_t now = dynbuf_size(&ctx->code);                                  \
         ctx->code.size += 4;                                                   \
+        dynbuf_realloc(&ctx->code, ctx->code.size);                            \
         return now;                                                            \
     } while (0)
 #define FETCH_OP(where)                                                        \
