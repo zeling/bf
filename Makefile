@@ -11,10 +11,8 @@ test: jit_test_x86-64.c dynbuf.o bfvm.o jit_entry_x86-64.o jit.o jit_x86-64.o
 bfi: bfi.o dynbuf.o bfvm.o jit.o jit_entry_x86-64.o jit_x86-64.o
 	$(CC) $(LDFLAGS) -o $@ $^
 
-quine-data: quine-data.o
-
-quine.bf: quine-code.part quine-data bfi
-	./quine-data < $< > $@
+quine.bf: quine-code.part quine-data.bf bfi
+	./bfi quine-data.bf < $< > $@
 	cat quine-code.part >> $@
 
 fmt:
