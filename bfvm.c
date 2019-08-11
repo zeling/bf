@@ -44,6 +44,7 @@ enum {
 static int bf_bytecode_interp(uint8_t *pc, uint8_t *sp);
 static int bf_default_interp(bf_t *ctx);
 static size_t eat(FILE *in, char target);
+uint8_t bf_getchar();
 
 void bf_init(bf_t *ctx)
 {
@@ -253,7 +254,7 @@ static int bf_bytecode_interp(uint8_t *pc, uint8_t *sp)
         BREAK;
 
     CASE(GET):
-        *sp = getchar();
+        *sp = bf_getchar();
         BREAK;
 
     CASE(CLR):
@@ -270,4 +271,12 @@ static int bf_bytecode_interp(uint8_t *pc, uint8_t *sp)
 static inline int bf_default_interp(bf_t *ctx)
 {
     return bf_bytecode_interp(ctx->bytecode.data, ctx->tape);
+}
+
+uint8_t bf_getchar()
+{
+    int ch = getchar();
+    if (ch == EOF)
+        return 0;
+    return ch;
 }

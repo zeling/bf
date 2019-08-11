@@ -37,7 +37,7 @@ SYM(jit_entry):
     pushq %r14
     pushq %r15
     movq %rdi, %rbx
-    movq SYM(getchar)@GOTPCREL(%rip), %r14
+    movq SYM(bf_getchar)@GOTPCREL(%rip), %r14
     movq SYM(putchar)@GOTPCREL(%rip), %r15
     call L1
     movq %rbx, %rax
